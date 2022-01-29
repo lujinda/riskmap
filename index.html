@@ -1,0 +1,156 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <style>
+    html,
+    body,
+    #container {
+      width: 100%;
+      height: 100%;
+    }
+    </style>
+    <title>杭州封控，管控，防范区查询</title>
+    <link rel="stylesheet" href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css" />
+    <link rel="stylesheet" href="https://cache.amap.com/lbs/static/main1119.css"/>
+    <script src="https://webapi.amap.com/maps?v=2.0&key=e0522f33cb490d99ecf1e3a59dbf1316&plugin=AMap.PolygonEditor"></script>
+    <script src="https://a.amap.com/jsapi_demos/static/demo-center/js/demoutils.js"></script>
+</head>
+<body>
+<div id="container"></div>
+<div id="myPageTop">
+    <table>
+        <tr>
+            <td>
+                <label>请输入您在杭州位置关键词：</label>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <input id="tipinput"/>
+            </td>
+        </tr>
+    </table>
+</div>
+<div class="input-card" style="width: 120px">
+    <button class="btn" onclick="createPolygon(0)" style="margin-bottom: 5px">新建封控</button>
+    <button class="btn" onclick="createPolygon(1)" style="margin-bottom: 5px">新建管控</button>
+    <button class="btn" onclick="createPolygon(2)" style="margin-bottom: 5px">新建防范</button>
+    <button class="btn" onclick="closeEditor()">结束编辑</button>
+    <button class="btn" onclick="printPaths()">打印坐标</button>
+</div>
+<script type="text/javascript">
+    var map = new AMap.Map("container", {
+        center: [120.190451, 30.189531],
+        zoom: 16.8
+    });
+
+    //输入提示
+    var autoOptions = {
+        input: "tipinput"
+    };
+     AMap.plugin(['AMap.PlaceSearch','AMap.AutoComplete'], function(){
+        var auto = new AMap.AutoComplete(autoOptions);
+        var placeSearch = new AMap.PlaceSearch({
+            map: map
+        });  //构造地点查询类
+        auto.on("select", select);//注册监听，当选中某条记录时会触发
+        function select(e) {
+            placeSearch.setCity(e.poi.adcode);
+            placeSearch.search(e.poi.name);  //关键字查询查询
+        }
+    });
+
+    // !!!!!!!!!!
+    // 点击“打印坐标”后，把console中输出的内容复制到这，完成数据更新。
+    var p1Paths = [];
+    var p2Paths = [];
+    var p3Paths = [];
+
+    map.setFitView();
+
+    var polyList = [{
+        editor: null,
+        paths: p1Paths,
+        fillColor: "#FF0000",
+        polygons: [],
+        printPrefix: "var p1Paths = ",
+    }, {
+        editor: null,
+        paths: p2Paths,
+        fillColor: "#FF6100",
+        polygons: [],
+        printPrefix: "var p2Paths = ",
+    }, {
+        editor: null,
+        paths: p3Paths,
+        fillColor: "#FFFF00",
+        polygons: [],
+        printPrefix: "var p3Paths = ",
+    }];
+    polyList.forEach(function (_, i) {
+        var args = polyList[i];
+
+        var polygons = [];
+        args.polygons = polygons;
+
+        var polyEditor = new AMap.PolygonEditor(map);
+        args.editor = polyEditor;
+        polyEditor.on('add', function (data) {
+            var polygon = data.target;
+            polyEditor.addAdsorbPolygons(polygon);
+            polygons.push(polygon);
+            polygon.on('dblclick', () => {
+                polyEditor.setTarget(polygon);
+                polyEditor.open();
+            })
+        })
+
+        args.paths.forEach(function (p) {
+            var polygon = new AMap.Polygon({
+                path: p,
+                fillColor: args.fillColor,
+                fillOpacity: 0.3,
+            });
+
+            polygon.on('dblclick', () => {
+                polyEditor.setTarget(polygon);
+                polyEditor.open();
+            })
+            polygons.push(polygon);
+        });
+        map.add(polygons);
+        polyEditor.addAdsorbPolygons(polygons);
+
+    })
+
+    function createPolygon(i) {
+        var polyEditor = polyList[i].editor;
+        polyEditor.close();
+        polyEditor.setTarget();
+        polyEditor.open();
+    };
+
+    function printPaths() {
+        var msg = [];
+        polyList.forEach(function(p) {
+            var paths = [];
+            p.polygons.forEach(function (polygon){
+                paths.push(polygon.getPath());
+            });
+            msg.push(p.printPrefix + JSON.stringify(paths) +";");
+        });
+        console.log(msg.join("\n"));
+    }
+
+    function closeEditor() {
+        polyList.forEach(function(p) {
+            p.editor.close();
+        });
+    }
+
+</script>
+</body>
+</html>
