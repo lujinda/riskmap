@@ -48,9 +48,12 @@
     <button class="btn" onclick="printPaths()">打印坐标</button>
 </div>
 <script type="text/javascript">
+    if (window.location.search.indexOf("edit=1") == -1) {
+        document.querySelector(".input-card").remove();
+    }
     var map = new AMap.Map("container", {
         center: [120.190451, 30.189531],
-        zoom: 15,
+        zoom: 12,
     });
 
     //输入提示
